@@ -25,20 +25,6 @@ if (!defined('WPINC')) {
                                     </div>
                                 </div>
                             </div>
-                            <div class="info-row server-info">
-                                <div class="info-col">
-                                    PHP Version: <strong><?php echo esc_html(PHP_VERSION); ?></strong><br>
-                                    PHP Memory: <strong><?php echo esc_html(ini_get('memory_limit')); ?></strong>
-                                </div>
-                                <div class="info-col">
-                                    WordPress Version: <strong><?php echo esc_html( get_bloginfo('version') ); ?></strong><br>
-                                    Date: <strong><?php echo esc_html( gmdate('Y-m-d H:i:s')); ?></strong>
-                                </div>
-                                <div class="info-col">
-                                    Server Software: <strong><?php echo isset($_SERVER['SERVER_SOFTWARE']) ?
-										esc_html(sanitize_text_field(wp_unslash($_SERVER['SERVER_SOFTWARE']))) : 'N/A'; ?></strong>
-                                </div>
-                            </div>
                         </div>
                         <div class="grade-container">
                             <div id="gradeDisplay" class="grade-display">--</div>
@@ -70,14 +56,14 @@ if (!defined('WPINC')) {
                 </div>
 
                 <div class="sidebar">
-         				 <?php include_once 'php-vitals-terms.php'; ?>
+						<?php include_once 'php-vitals-info.php'; ?>
+					<?php if (get_option('phpvitals_terms_accepted')): ?>
                     <div id="benchmarkHistory" class="benchmark-history">
                         <h2>Benchmark History</h2>
                         <table class="history-table">
                             <thead>
                                 <tr>
                                     <th>Date</th>
-                                    <!-- <th>Base Time</th> -->
 									<th>Total Time</th>
 									<th>Grade</th>
                                 </tr>
@@ -87,7 +73,7 @@ if (!defined('WPINC')) {
 								global $wpdb;
 								$results = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 									$wpdb->prepare(
-										"SELECT * FROM %i ORDER BY run_date DESC LIMIT 20", "{$wpdb->prefix}phpvitals_history"
+										"SELECT * FROM %i ORDER BY run_date DESC LIMIT 15", "{$wpdb->prefix}phpvitals_history"
 											),
         								ARRAY_A
         							);
@@ -95,7 +81,6 @@ if (!defined('WPINC')) {
 					        	foreach ($results as $result) {
         							echo '<tr>';
         							echo '<td>' . esc_html( substr($result['run_date'], 0, 10) ) . '</td>';
-        							// echo '<td>' . esc_html( $result['base_time'] ) . '</td>';
         							echo '<td>' . esc_html( $result['total_time'] ) . '</td>';
         							echo '<td class="grade-history" >' . esc_html( $result['grade'] ) . '</td>';
         							echo '</tr>';
@@ -104,6 +89,7 @@ if (!defined('WPINC')) {
                             </tbody>
                         </table>
                     </div>
+					<?php endif; ?>
                 </div>
             </div>
     </div>

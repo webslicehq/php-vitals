@@ -4,7 +4,7 @@
  * Plugin Name: PHP Vitals
  * Plugin URI: https://phpvitals.com
  * Description: Benchmark your PHP performance, identify potential areas for optimization and see how your hosting ranks.
- * Version: 1.1.0
+ * Version: 1.2.1
  * Requires at least: 6.2
  * Requires PHP: 7.0
  * Author: Webslice
@@ -18,7 +18,7 @@ if (!defined('WPINC')) {
 	exit;
 }
 
-define('PHPVITALS_VERSION', '1.1.0');
+define('PHPVITALS_VERSION', '1.2.1');
 define('PHPVITALS_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('PHPVITALS_PLUGIN_URL', plugin_dir_url(__FILE__));
 

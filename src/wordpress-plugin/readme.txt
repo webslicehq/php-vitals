@@ -5,7 +5,7 @@ Tags: benchmark, speed, hosting, performance, php
 Requires at least: 6.2
 Tested up to: 6.8
 Requires PHP: 7.0
-Stable tag: 1.1.0
+Stable tag: 1.2.1
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -93,6 +93,15 @@ A: We’re Webslice, a hosting company that loves LAMP stack and PHP development
 We have a couple of sister companies with the same owners and team—SiteHost and MyHost.
 
 == Changelog ==
+= 1.2.1 =
+* Adjust styles
+
+= 1.2.0 =
+* Move to Tools menu
+* Adjust hashing and crypt tests
+* Add hosting information
+* Dynamically assigned grades
+
 = 1.1.0 =
 * Update Class and Function names
 * Update readme
@@ -118,6 +127,9 @@ We have a couple of sister companies with the same owners and team—SiteHost an
 * Initial relase
 
 == Upgrade Notice ==
+= 1.2.0 =
+This release uses a dynamic grading system comparing your time to other servers around the world. It adjusts the hashing and crypt tests. It also moves PHP Vitals to the Tools menu in the WP Dashboard.
+
 = 0.9.7 =
 This release includes minor fixes to data sent to leaderboard and database query structure.
 

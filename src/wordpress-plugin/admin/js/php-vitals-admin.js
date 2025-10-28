@@ -5,31 +5,68 @@
     let testCount = 0;
     let totalTime = 0;
     let iterations = 0;
+    let testOutput = [];
 
     function formatTime(time) {
         let seconds = time % 60;
-        return `${Math.floor(time / 60).toString().padStart(2, '0')}:${Math.floor(seconds).toString().padStart(2, '0')}
-			.${Math.floor(seconds % 1 * 1000).toString().padStart(3, '0')}`;
+        return `${Math.floor(time / 60).toString().padStart(2, '0')}:${Math.floor(seconds).toString().padStart(2, '0')}.${Math.floor(seconds % 1 * 1000).toString().padStart(3, '0')}`;
     }
 
     function getGrade(time) {
-        const grades = [
-            { time: 5, grade: 'A+', color: '#16a34a', desc: 'Exceptional' },
-            { time: 10, grade: 'A', color: '#22c55e', desc: 'Excellent' },
-            { time: 15, grade: 'B', color: '#84cc16', desc: 'Good' },
-            { time: 20, grade: 'C', color: '#eab308', desc: 'Average' },
-            { time: 25, grade: 'D', color: '#f97316', desc: 'Below Average' },
-            { time: 30, grade: 'E', color: '#ef4444', desc: 'Poor' },
-            { time: 40, grade: 'F', color: '#b91c1c', desc: 'Failed' }
-        ];
+        return new Promise((resolve, reject) => {
+            if (!phpvitals || !phpvitals.ajaxurl) {
+                reject(new Error('phpvitals object or ajaxurl not available'));
+                return;
+            }
 
-        for (let grade of grades) {
-            if (time <= grade.time) return grade;
-        }
-        return grades[grades.length - 1];
+            const formData = new FormData();
+            formData.append('action', 'phpvitals_get_grades');
+            formData.append('nonce', phpvitals.nonce);
+            formData.append('time', time);
+
+            fetch(phpvitals.ajaxurl, {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    try {
+                        if (data.success && data.data) {
+                            let grades = data.data;
+                            if (!Array.isArray(grades)) {
+                                console.error('Grades response is not an array:', grades);
+                                reject('Invalid grades data format');
+                                return;
+                            }
+                            for (let grade of grades) {
+                                if (time <= grade.avg_value) {
+                                    resolve(grade);
+                                    return;
+                                }
+                            }
+                            resolve(grades[grades.length - 1]);
+                        } else {
+                            reject(data.data || 'Error getting grades');
+                        }
+                    } catch (error) {
+                        console.error('Error processing grades response:', error);
+                        reject('Error processing grades: ' + error.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('getGrade error:', error);
+                    reject(error);
+                });
+        });
     }
 
     function createTest(data) {
+        if (!data || typeof data.test_name === 'undefined') {
+            console.warn('Invalid data passed to createTest:', data);
+            return;
+        }
+
         testCount++;
 
         let tbody = $('#testResultsTable tbody').length ? $('#testResultsTable tbody')[0] : null;
@@ -41,66 +78,154 @@
 
         if (data.skipped) {
             let cell = row.insertCell(1);
-            cell.textContent = data.skip_reason;
+            cell.textContent = data.skip_reason || 'Skipped';
             cell.colSpan = 3;
             cell.style.color = '#64748b';
             cell.style.fontStyle = 'italic';
         } else {
-            row.insertCell(1).textContent = data.time.toFixed(5) + 's';
-            row.insertCell(2).textContent = Math.round(data.ops_per_ms) + ' op/ms';
-            totalTime += data.time;
-            iterations += data.iterations;
+            if (typeof data.time === 'number' && typeof data.ops_per_ms === 'number') {
+                row.insertCell(1).textContent = data.time.toFixed(5) + 's';
+                row.insertCell(2).textContent = Math.round(data.ops_per_ms) + ' op/ms';
+                totalTime += data.time;
+                iterations += data.iterations;
+                testOutput.push(data);
+            } else {
+                console.warn('Invalid time or ops_per_ms data:', data);
+            }
         }
-
     }
 
     function addTotalsRow() {
         let tfoot = $('#testResultsTable tfoot');
-        if (!tfoot) return;
+        if (!tfoot || !tfoot.length) return;
+
+        if (typeof totalTime !== 'number' || isNaN(totalTime)) {
+            console.warn('Invalid totalTime:', totalTime);
+            return;
+        }
 
         const totalRow = $('<tr>');
-        const grade = getGrade(totalTime);
+
         totalRow.css({
-            'borderTop': '2px solid ' + grade.color,
+            'borderTop': '2px solid ',
         });
         totalRow.html(`
             <td>Totals</td>
             <td><strong>${totalTime.toFixed(5)}s</strong></td>
         `);
         tfoot.append(totalRow);
+    }
 
-        let gradeContainer = $('.grade-container');
-        let gradeDisplay = $('#gradeDisplay');
-        let gradeDescription = $('#gradeDescription');
+    function processBenchmarkResults() {
+        try {
+            addTotalsRow();
 
-        if (gradeContainer && gradeDisplay && gradeDescription) {
-            gradeContainer.show();
-            gradeDisplay.text(grade.grade);
-            gradeDisplay.css('color', grade.color);
-            gradeDisplay.addClass('grade-circle');
-            gradeDescription.text(grade.desc);
+            getGrade(totalTime).then(grade => {
+                try {
+                    if (!grade || typeof grade.grade === 'undefined') {
+                        console.warn('Invalid grade data:', grade);
+                        return;
+                    }
+
+                    let gradeContainer = $('.grade-container');
+                    let gradeDisplay = $('#gradeDisplay');
+                    let gradeDescription = $('#gradeDescription');
+
+                    if (gradeContainer && gradeContainer.length && gradeDisplay && gradeDisplay.length && gradeDescription && gradeDescription.length) {
+                        gradeContainer.show();
+                        gradeDisplay.text(grade.grade);
+                        if (grade.colour) {
+                            gradeDisplay.addClass(grade.colour);
+                        }
+                        gradeDisplay.addClass('grade-circle');
+                        if (grade.desc) {
+                            gradeDescription.text(grade.desc);
+                        }
+                    }
+
+                    setTimeout(() => {
+                        try {
+                            saveBenchmarkResults(grade);
+                        } catch (saveError) {
+                            console.error('Error saving results:', saveError);
+                        }
+                    }, 500);
+                } catch (gradeError) {
+                    console.error('Error processing grade:', gradeError);
+                }
+            }).catch(error => {
+                console.error('Error getting grade:', error);
+            });
+        } catch (processError) {
+            console.error('Error in processBenchmarkResults:', processError);
+        }
+    }
+
+    function saveBenchmarkResults(grade) {
+        try {
+
+            const formData = new FormData();
+            formData.append('action', 'phpvitals_save_results');
+            formData.append('nonce', phpvitals.nonce);
+            formData.append('total_time', totalTime);
+            formData.append('iterations', iterations);
+            formData.append('test_count', testCount);
+            formData.append('grade', grade.grade);
+            formData.append('output', JSON.stringify(testOutput));
+
+            fetch(phpvitals.ajaxurl, {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        updateLoadingMessage('Failed to save benchmark results: ' + data.data.message);
+                    }
+                })
+                .catch(error => {
+                    updateLoadingMessage('Error saving benchmark results: ' + error.message);
+                });
+        } catch (error) {
+            console.error('Error in saveBenchmarkResults:', error);
         }
     }
 
     function updateLoadingMessage(message) {
         const loading = $('#loading');
-        if (loading) {
-            loading.html(message);
+        if (loading && loading.length > 0) {
+            try {
+                loading.html(message);
+            } catch (error) {
+                console.error('Error updating loading message:', error);
+            }
         }
     }
 
     function runTest(testIndex = 0) {
-        jQuery.ajax({
-            url: phpvitals.ajaxurl,
-            type: 'POST',
-            data: {
-                action: 'phpvitals_run_benchmark',
-                nonce: phpvitals.nonce,
-                test_index: testIndex
-            },
-            success: function(response) {
+        const formData = new FormData();
+        formData.append('action', 'phpvitals_run_benchmark');
+        formData.append('nonce', phpvitals.nonce);
+        formData.append('test_index', testIndex);
+
+        fetch(phpvitals.ajaxurl, {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(response => {
                 if (response.success) {
                     const data = response.data;
+
+                    if (!data || typeof data.total_tests === 'undefined') {
+                        console.error('Invalid response data:', data);
+                        updateLoadingMessage('Error: Invalid test data received');
+                        isRunning = false;
+                        $('#runBenchmark').prop('disabled', false);
+                        return;
+                    }
 
                     updateTestProgress(data);
                     createTest(data);
@@ -111,76 +236,39 @@
                         }, 1000);
                     } else {
                         isRunning = false;
-                        addTotalsRow();
+                        $('#runBenchmark').prop('disabled', false);
                         jQuery('#loading').hide();
                         jQuery('#testResultsTable').show();
 
-                        jQuery.ajax({
-                            url: phpvitals.ajaxurl,
-                            type: 'POST',
-                            data: {
-                                action: 'phpvitals_save_results',
-                                nonce: phpvitals.nonce,
-                                total_time: totalTime,
-                                iterations: iterations,
-                                test_count: testCount,
-                                grade: getGrade(totalTime).grade
-                            },
-                            success: function(response) {
-                                if (!response.success) {
-                                    updateLoadingMessage('Failed to save benchmark results:', response.data.message);
-                                }
-                            },
-                            error: function(xhr, status, error) {
-                                updateLoadingMessage('Error saving benchmark results:', error);
-                            }
-                        });
+                        processBenchmarkResults();
                     }
                 } else {
                     updateLoadingMessage('Error running benchmark: ' + response.data.message);
                     isRunning = false;
+                    $('#runBenchmark').prop('disabled', false);
                 }
-            },
-            error: function(xhr, status, error) {
+            })
+            .catch(error => {
                 updateLoadingMessage('Error running benchmark: ' + error);
                 isRunning = false;
-            }
-        });
+                $('#runBenchmark').prop('disabled', false);
+            });
     }
 
     function updateTestProgress(data) {
         const loading = $('#loading');
-        if (!loading) return;
-        const message = `Running test ${data.test_index + 1}/${data.total_tests}:
-			${data.test_name}`;
+        if (!loading || !loading.length) return;
 
+        if (!data || typeof data.test_index === 'undefined' || typeof data.total_tests === 'undefined' || typeof data.test_name === 'undefined') {
+            console.warn('Invalid data passed to updateTestProgress:', data);
+            return;
+        }
+
+        const message = `Running test ${data.test_index + 1}/${data.total_tests}: ${data.test_name}`;
         updateLoadingMessage(message);
     }
 
     jQuery(document).ready(function($) {
-        $('#terms-acceptance-form').on('submit', function(e) {
-            e.preventDefault();
-
-            $.ajax({
-                url: phpvitals.ajaxurl,
-                type: 'POST',
-                data: {
-                    action: 'phpvitals_handle_terms',
-                    nonce: phpvitals.nonce,
-                    terms_accept: $('#terms-accept').prop('checked') ? 'on' : 'off'
-                },
-                success: function(response) {
-                    if (response.success && response.data.redirect) {
-                        window.location.href = response.data.redirect;
-                    } else {
-                        alert(response.data || 'Error accepting terms');
-                    }
-                },
-                error: function() {
-                    alert('Error accepting terms');
-                }
-            });
-        });
 
         const runButton = $('#runBenchmark');
 
@@ -204,6 +292,90 @@
         }
 
         runButton.on('click', startBenchmark);
+
+        $('#unified-form').on('submit', function(e) {
+            e.preventDefault();
+
+            const hostingType = $('input[name="hosting_type"]:checked').val();
+            const hostingCost = $('input[name="hosting_cost"]:checked').val();
+            const termsAccepted = $('#terms-accept').prop('checked') ? 'on' : 'off';
+
+            if (!hostingType || !hostingCost) {
+                showMessage('Please select both hosting type and cost', 'error');
+                return;
+            }
+
+            $.ajax({
+                url: phpvitals.ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'phpvitals_save_hosting_info',
+                    nonce: phpvitals.nonce,
+                    hosting_type: hostingType,
+                    hosting_cost: hostingCost,
+                    terms_accept: termsAccepted
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $('#unified-form').hide();
+                        $('#hosting-info-section').hide();
+                        $('.current-status-display').show();
+
+                        updateHostingInfoDisplay(response.data);
+
+                        showMessage('Information saved successfully!', 'success');
+
+                        setTimeout(function() {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        showMessage('Error: ' + (response.data || 'Failed to save information'), 'error');
+                    }
+                },
+                error: function() {
+                    showMessage('Error: Failed to save information', 'error');
+                }
+            });
+        });
+
+        $('#edit-hosting-info').on('click', function() {
+            $('.current-status-display').hide();
+            $('#unified-form').show();
+            $('#hosting-info-section').show();
+        });
+
+        $('#cancel-edit').on('click', function() {
+            $('#unified-form').hide();
+            $('#hosting-info-section').hide();
+            $('.current-status-display').show();
+
+            resetFormToCurrentValues();
+        });
+
+
+        function updateHostingInfoDisplay(data) {
+
+            setTimeout(function() {
+                location.reload();
+            }, 1000);
+        }
+
+        function resetFormToCurrentValues() {
+            $('input[type="radio"]').prop('checked', false);
+        }
+
+        function showMessage(message, type) {
+            const messageClass = type === 'success' ? 'notice notice-success' : 'notice notice-error';
+            const messageHtml = '<div class="' + messageClass + ' is-dismissible"><p>' + message + '</p></div>';
+
+            $('.notice').remove();
+            $('.info-container').prepend(messageHtml);
+            if (type === 'success') {
+                setTimeout(function() {
+                    $('.notice-success').fadeOut();
+                }, 3000);
+            }
+        }
 
     });
 

@@ -28,7 +28,7 @@ class PHPVitals_Tests
 
 		$run_times = 50000;
 		$run_times_slow = 5000;
-		$run_times_slowest = 1000;
+		$run_times_slowest = 1;
 
 		$tests = [
 			[
@@ -320,7 +320,7 @@ class PHPVitals_Tests
 				'category' => 'crypto',
 				'name' => 'Crypto: Password Hash',
 				'function' => function () {
-					$hash = password_hash('test_password', PASSWORD_DEFAULT, ['cost' => 4]);
+					$hash = password_hash('test_password', PASSWORD_DEFAULT, ['cost' => 14]);
 					password_verify('test_password', $hash);
 				},
 				'iterations' => $run_times_slowest

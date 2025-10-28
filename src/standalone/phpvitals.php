@@ -31,7 +31,7 @@ class PhpVitals
 
 		$run_times = 50000;
 		$run_times_slow = 5000;
-		$run_times_slowest = 1000;
+		$run_times_slowest = 1;
 
 		$tests = [
 			[
@@ -323,7 +323,7 @@ class PhpVitals
 				'category' => 'crypto',
 				'name' => 'Crypto: Password Hash',
 				'function' => function () {
-					$hash = password_hash('test_password', PASSWORD_DEFAULT, ['cost' => 4]);
+					$hash = password_hash('test_password', PASSWORD_DEFAULT, ['cost' => 14]);
 					password_verify('test_password', $hash);
 				},
 				'iterations' => $run_times_slowest
@@ -409,58 +409,123 @@ class PhpVitals
 		$date = date('Y-m-d H:i:s');
 		$memory_limit = ini_get('memory_limit');
 		$php_version = PHP_VERSION;
+		
+		function get_currency_info() {
+			$currency = 'usd';
+			$currency_symbol = "$";
+
+			return [
+				'currency' => $currency,
+				'currency_symbol' => $currency_symbol
+				];
+		}
 
 		echo <<<EOT
-			        <!DOCTYPE html>
-			<html lang="en">
-			<head>
-			    <meta charset="UTF-8">
-			    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-			    <title>PHP Benchmark Performance Test</title>
-			    <link href="https://phpvitals.com/phpvitals.css" rel="stylesheet">
-			    <script src="https://phpvitals.com/phpvitals.js"></script>
-			</head>
-			<body>
-			    <div class="container">
-			        <div class="content">
-			        <div class="system-info">
-			                        <div class="title">
-			                            <h1>PHP Benchmark Performance Test</h1>
-			                        </div>
-			                        <div class="timer-score">
-			                            <div class="benchmark-controls">
-			                                <button id="runBenchmark" class="button button-primary button-large">
-												Run Benchmark
-											</button>
-			                            </div>
-			                            <div class="timer-container">
-			                                <div id="loading" class="loading" style="display: none;">
-			                                    <div class="spinner"></div>
-			                                    Running performance tests...
-			                                </div>
-			                                <div id="subtimers" class="subtimers">
-			                                    <div>Base PHP: <span id="baseTimer">0.000s</span></div><br>
-			                                    <div>Extensions: <span id="extTimer">0.000s</span></div>
-			                                </div>
-			                            </div>
-			                            <div class="grade-container">
-			                                <div id="gradeDisplay" class="grade-display">--</div>
-			                                <div id="gradeDescription" class="grade-description">--</div>
-			                            </div>
-			                        </div>
-			                        <div class="info-row server-info">
-			                            <div class="info-col">
-			                                PHP Version: $php_version
-			                                PHP Memory: $memory_limit
-			                            </div>
-			                            <div class="info-col">
-			                                Date: $date <br>
-			                                Server Software: $server_software
-			                            </div>
-			                        </div>
-			                    </div>
-			            <div id="results">
-			                <table class="test-results-table" id="testResultsTable">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHP Benchmark Performance Test</title>
+    <link href="https://phpvitals.com/phpvitals.css" rel="stylesheet">
+    <script src="https://phpvitals.com/phpvitals.js"></script>
+</head>
+<body>
+    <div class="container">
+            <div class="system-info">
+                <div>
+                    <h1>PHP Benchmark Performance Test</h1>
+                </div>
+                  <div class="grade-container">
+                        <div id="grade-display" class="grade-display">--</div>
+                        <div id="grade-description" class="grade-description">--</div>
+                    </div>
+                <div class="timer-score">
+                    <div class="timer-container">
+                        <div id="loading" class="loading" style="display: none;">
+                            <div class="spinner"></div>
+                            Running performance tests...
+                        </div>
+                    </div>
+                </div>
+                <div class="hosting-info" id="hosting-info">
+                        <form id="hosting-info-form" class="hosting-info-form" style="font-size: 13px;">
+                            <div class="form-section" id="hosting-info-section">
+                                <h3>Hosting Information</h3>
+                                <p>Help us understand your hosting setup for better performance comparisons.</p>
+                                <div class="server-hosting-section">
+                                    <div class="hosting-type-group">
+                                        <label class="section-label">What type of hosting do you use?</label>
+                                        <div class="radio-group">
+                                            <label class="radio-option">
+                                                <input type="radio" name="hosting_type" value="1" id="hosting-shared">
+                                                <span class="radio-custom"></span>
+                                                <span class="radio-label">Shared Hosting</span>
+                                            </label>
+                                            <label class="radio-option">
+                                                <input type="radio" name="hosting_type" value="2" id="hosting-vps">
+                                                <span class="radio-custom"></span>
+                                                <span class="radio-label">VPS/Dedicated</span>
+                                            </label>
+                                            <label class="radio-option">
+                                                <input type="radio" name="hosting_type" value="3" id="hosting-other">
+                                                <span class="radio-custom"></span>
+                                                <span class="radio-label">Self-hosted</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="hosting-cost-group">
+                                        <label class="section-label">What is your monthly hosting cost? (in USD)</label>
+                                        <div class="radio-group">
+                                            <label class="radio-option">
+                                                <input type="radio" name="hosting_cost" value="1" id="cost-less-10">
+                                                <span class="radio-custom"></span>
+                                                <span class="radio-label">$ (Less than $10/month)</span>
+                                            </label>
+                                            <label class="radio-option">
+                                                <input type="radio" name="hosting_cost" value="2" id="cost-10-20">
+                                                <span class="radio-custom"></span>
+                                                <span class="radio-label">$$ ($10 to $20/month)</span>
+                                            </label>
+                                            <label class="radio-option">
+                                                <input type="radio" name="hosting_cost" value="3" id="cost-20-50">
+                                                <span class="radio-custom"></span>
+                                                <span class="radio-label">$$$ ($20 to $50/month)</span>
+                                            </label>
+                                            <label class="radio-option">
+                                                <input type="radio" name="hosting_cost" value="4" id="cost-more-50">
+                                                <span class="radio-custom"></span>
+                                                <span class="radio-label">$$$$ (More than $50/month)</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-section">
+                                <h3>Terms and Privacy</h3>
+                                <div class="terms-content">
+                                    <p>This tool connects to <a href="https://phpvitals.com" target="_blank">PHP Vitals</a> to compare the user's benchmark test results.</p>
+                                    <p>If you would like to share and compare your results, please read over and check the <a href="https://phpvitals.com/privacy-policy" target="_blank">Privacy Policy</a> and <a href="https://phpvitals.com/terms" target="_blank">Terms of Use</a>.</p>
+                                </div>
+
+                                <div class="terms-checkbox">
+                                    <label>
+                                        <input type="checkbox" id="terms-accept" name="terms_accept">
+                                        I have read and agree to the Terms of Use and Privacy Policy.
+                                    </label>
+                                </div>
+                                                    <div class="benchmark-controls">
+                        <button id="run-benchmark" class="button button-primary button-large">
+                            Run Benchmark
+                        </button>
+                        </div>
+                            </div>
+                        </form>
+                    </div>
+                <div id="results">
+			                <table class="test-results-table" id="test-results-table" style="display: none;">
 			                    <thead>
 			                        <tr>
 			                            <th>Test Name</th>
@@ -473,12 +538,12 @@ class PhpVitals
 			                    <tfoot>
 			                    </tfoot>
 			                </table>
-			            </div>
 			        </div>
-			    </div>
-			</body>
-			</html>
-			EOT;
+                </div>
+        </div>
+</body>
+</html>
+EOT;
 	}
 
 	public function processPost()

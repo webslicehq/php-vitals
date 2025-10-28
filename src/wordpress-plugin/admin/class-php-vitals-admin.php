@@ -5,16 +5,16 @@ class PHPVitals_Admin
 
 	public function __construct()
 	{
-		add_action('admin_menu', [$this,'add_plugin_admin_menu']);
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_scripts' ] );
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_styles' ] );
+		add_action('admin_menu', [$this,'add_plugin_admin_menu']);
 		add_filter('plugin_action_links_php-vitals', [$this, 'add_action_links']);
 	}
 
 	public function enqueue_styles()
 	{
 		$screen = get_current_screen();
-		if ($screen->id === 'toplevel_page_php-vitals') {
+		if ($screen->id === 'tools_page_php-vitals') {
 			wp_enqueue_style('php-vitals', plugin_dir_url(__FILE__) .
 				'css/php-vitals-admin.css', [], PHPVITALS_VERSION, 'all');
 		}
@@ -23,7 +23,7 @@ class PHPVitals_Admin
 	public function enqueue_scripts()
 	{
 		$screen = get_current_screen();
-		if ($screen->id === 'toplevel_page_php-vitals') {
+		if ($screen->id === 'tools_page_php-vitals') {
 			wp_enqueue_script('jquery');
 			wp_enqueue_script('php-vitals', plugin_dir_url(__FILE__) .
 				'js/php-vitals-admin.js', ['jquery'], PHPVITALS_VERSION, false);
@@ -36,14 +36,12 @@ class PHPVitals_Admin
 
 	public function add_plugin_admin_menu()
 	{
-		add_menu_page(
+		add_management_page(
 			'PHP Vitals',
 			'PHP Vitals',
 			'manage_options',
 			'php-vitals',
-			[$this, 'display_plugin_admin_page'],
-			'dashicons-performance',
-			100
+			[$this, 'display_plugin_admin_page']
 		);
 	}
 
