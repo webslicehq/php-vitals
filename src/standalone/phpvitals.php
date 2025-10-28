@@ -426,7 +426,7 @@ class PhpVitals
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PHP Benchmark Performance Test</title>
+    <title>PHP Vitals Performance Test</title>
     <link href="https://phpvitals.com/phpvitals.css" rel="stylesheet">
     <script src="https://phpvitals.com/phpvitals.js"></script>
 </head>
@@ -434,7 +434,7 @@ class PhpVitals
     <div class="container">
             <div class="system-info">
                 <div>
-                    <h1>PHP Benchmark Performance Test</h1>
+                    <h1>PHP Vitals Performance Test</h1>
                 </div>
                   <div class="grade-container">
                         <div id="grade-display" class="grade-display">--</div>
